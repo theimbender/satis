@@ -1,0 +1,11 @@
+{
+  "manifest_version": 2,
+  "version": "1.0.0",
+  "name": "%name%",
+  "short_name": "%short_name%",
+  "start_url": "%url%",
+  "theme_color": "#007bff",
+  "background_color": "#ffffff",
+  "display": "minimal-ui",
+  "orientation": "portrait"
+}

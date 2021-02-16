@@ -4,9 +4,19 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex,nofollow" />
+    <meta name="robots" content="noindex,nofollow">
     <link rel="icon" type="image/png" href="{{ source('assets/img/favicon.png')|data_uri(mime="image/png") }}">
+
+    <!-- Web manifest and progressive web app -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#007bff">
+    <link
+        rel="manifest"
+        href="{{ source('assets/manifest.json')|replace({
+            '%name%': name|default('Composer repository'),
+            '%short_name%': name|default('Composer repository')|slice(0, 12),
+            '%url%': url
+        })|data_uri(mime="application/json") }}">
 
     <title>{{ name|default('Composer repository') }}</title>
 

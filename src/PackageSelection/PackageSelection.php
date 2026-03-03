@@ -951,7 +951,7 @@ class PackageSelection
         return array_filter(
             $repositories,
             static function ($repository) use ($packages) {
-                if (!($repository instanceof ConfigurableRepositoryInterface)) {
+                if (!$repository instanceof ConfigurableRepositoryInterface) {
                     return false;
                 }
 

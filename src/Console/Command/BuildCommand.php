@@ -227,7 +227,7 @@ class BuildCommand extends BaseCommand
             $manager->addRepository($manager->createRepository($repo['type'], $repo, $repo['name'] ?? null));
         }
         if ([] !== $disabledRepoNames) {
-            $this->removeDisabledRepositories($manager, $disabledRepoNames);
+            $this->removeDisabledRepositories($manager, $disabledRepoNames, $output, (bool) $verbose);
         }
         // Make satis' config file pretend it is the root package
         $parser = new VersionParser();
@@ -294,21 +294,25 @@ class BuildCommand extends BaseCommand
      *
      * @param string[] $disabledRepoNames
      */
-    private function removeDisabledRepositories(RepositoryManager $manager, array $disabledRepoNames): void
+    private function removeDisabledRepositories(RepositoryManager $manager, array $disabledRepoNames, OutputInterface $output, bool $verbose = false): void
     {
         $refl = new \ReflectionProperty($manager, 'repositories');
         $repositories = $refl->getValue($manager);
 
+        $removedNames = [];
+
         $repositories = array_values(array_filter(
             $repositories,
-            static function ($repo) use ($disabledRepoNames): bool {
+            static function ($repo) use ($disabledRepoNames, &$removedNames): bool {
                 if (!$repo instanceof ConfigurableRepositoryInterface) {
                     return true;
                 }
                 $url = rtrim((string) preg_replace('{^https?://}i', '', $repo->getRepoConfig()['url'] ?? ''), '/');
                 foreach ($disabledRepoNames as $name) {
-                    $name = rtrim((string) preg_replace('{^https?://}i', '', $name), '/');
-                    if ('' !== $name && ($url === $name || str_ends_with($url, '.' . $name))) {
+                    $normalizedName = rtrim((string) preg_replace('{^https?://}i', '', $name), '/');
+                    if ('' !== $normalizedName && ($url === $normalizedName || str_ends_with($url, '.' . $normalizedName))) {
+                        $removedNames[] = $name;
+
                         return false;
                     }
                 }
@@ -318,6 +322,12 @@ class BuildCommand extends BaseCommand
         ));
 
         $refl->setValue($manager, $repositories);
+
+        if ($verbose) {
+            foreach ($removedNames as $name) {
+                $output->writeln(sprintf('<info>Removed repository %s (disabled by config)</info>', $name));
+            }
+        }
     }
 
     private function getConfiguration(): Config

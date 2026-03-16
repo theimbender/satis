@@ -20,6 +20,8 @@ use Composer\Repository\ConfigurableRepositoryInterface;
 use Composer\Repository\RepositoryManager;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Console\Output\NullOutput;
 
 class BuildCommandTest extends TestCase
 {
@@ -259,13 +261,68 @@ class BuildCommandTest extends TestCase
     }
 
     /**
+     * Verifies that removing disabled repositories produces verbose output
+     * listing each removed repository name.
+     */
+    public function testRemoveDisabledRepositoriesOutputsInVerboseMode(): void
+    {
+        Config::$defaultRepositories = [
+            'packagist.org' => ['type' => 'composer', 'url' => 'https://repo.packagist.org'],
+        ];
+
+        $config = [
+            'name' => 'test/satis-repo',
+            'homepage' => 'https://example.com',
+            'repositories' => [],
+        ];
+
+        $composer = (new Factory())->createComposer(new NullIO(), $config, true, null, false);
+        $manager = $composer->getRepositoryManager();
+
+        self::assertTrue($this->repositoryManagerContainsPackagist($manager));
+
+        $output = new BufferedOutput();
+        $this->invokeRemoveDisabledRepositories($manager, ['packagist.org'], $output, true);
+
+        self::assertFalse($this->repositoryManagerContainsPackagist($manager));
+        self::assertStringContainsString(
+            'Removed repository packagist.org (disabled by config)',
+            $output->fetch()
+        );
+    }
+
+    /**
+     * Verifies that no output is produced in non-verbose mode.
+     */
+    public function testRemoveDisabledRepositoriesSilentInNonVerboseMode(): void
+    {
+        Config::$defaultRepositories = [
+            'packagist.org' => ['type' => 'composer', 'url' => 'https://repo.packagist.org'],
+        ];
+
+        $config = [
+            'name' => 'test/satis-repo',
+            'homepage' => 'https://example.com',
+            'repositories' => [],
+        ];
+
+        $composer = (new Factory())->createComposer(new NullIO(), $config, true, null, false);
+        $manager = $composer->getRepositoryManager();
+
+        $output = new BufferedOutput();
+        $this->invokeRemoveDisabledRepositories($manager, ['packagist.org'], $output, false);
+
+        self::assertSame('', $output->fetch());
+    }
+
+    /**
      * @param string[] $disabledRepoNames
      */
-    private function invokeRemoveDisabledRepositories(RepositoryManager $manager, array $disabledRepoNames): void
+    private function invokeRemoveDisabledRepositories(RepositoryManager $manager, array $disabledRepoNames, ?\Symfony\Component\Console\Output\OutputInterface $output = null, bool $verbose = false): void
     {
         $command = new BuildCommand();
         $method = new \ReflectionMethod($command, 'removeDisabledRepositories');
-        $method->invokeArgs($command, [$manager, $disabledRepoNames]);
+        $method->invokeArgs($command, [$manager, $disabledRepoNames, $output ?? new NullOutput(), $verbose]);
     }
 
     private function repositoryManagerContainsPackagist(RepositoryManager $manager): bool

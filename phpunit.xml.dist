@@ -5,6 +5,7 @@
          displayDetailsOnPhpunitDeprecations="true"
          displayDetailsOnTestsThatTriggerDeprecations="true"
          displayDetailsOnTestsThatTriggerErrors="true"
+         testdox="true"
 >
   <coverage>
     <report>

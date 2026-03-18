@@ -116,19 +116,23 @@ class AddCommand extends BaseCommand
 
     protected function isRepositoryValid(string $repositoryUrl, string $type): bool
     {
-        $io = new NullIO();
-        $config = Factory::createConfig();
-        $io->loadConfiguration($config);
-        $downloader = new HttpDownloader($io, $config);
-        $repository = new VcsRepository(['url' => $repositoryUrl, 'type' => $type], $io, $config, $downloader);
+        try {
+            $io = new NullIO();
+            $config = Factory::createConfig();
+            $io->loadConfiguration($config);
+            $downloader = new HttpDownloader($io, $config);
+            $repository = new VcsRepository(['url' => $repositoryUrl, 'type' => $type], $io, $config, $downloader);
 
-        $driver = $repository->getDriver();
-        if (is_null($driver)) {
+            $driver = $repository->getDriver();
+            if (is_null($driver)) {
+                return false;
+            }
+
+            $information = $driver->getComposerInformation($driver->getRootIdentifier());
+
+            return isset($information['name']) && is_string($information['name']);
+        } catch (\Exception) {
             return false;
         }
-
-        $information = $driver->getComposerInformation($driver->getRootIdentifier());
-
-        return isset($information['name']) && is_string($information['name']);
     }
 }

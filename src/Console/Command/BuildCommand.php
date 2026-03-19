@@ -272,12 +272,7 @@ class BuildCommand extends BaseCommand
         $packagesBuilder = new PackagesBuilder($output, $outputDir, $config, $skipErrors, $minify);
         $packagesBuilder->dump($packages);
 
-        $htmlView = (bool) $input->getOption('no-html-output');
-        if (!$htmlView) {
-            $htmlView = !isset($config['output-html']) || (bool) $config['output-html'];
-        }
-
-        if ($htmlView) {
+        if ($this->shouldBuildHtml($input, $config)) {
             $web = new WebBuilder($output, $outputDir, $config, $skipErrors);
             $web->setRootPackage($composer->getPackage());
             $web->dump($packages);
@@ -328,6 +323,22 @@ class BuildCommand extends BaseCommand
                 $output->writeln(sprintf('<info>Removed repository %s (disabled by config)</info>', $name));
             }
         }
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function shouldBuildHtml(InputInterface $input, array $config): bool
+    {
+        if ((bool) $input->getOption('no-html-output')) {
+            return false;
+        }
+
+        if (isset($config['output-html'])) {
+            return (bool) $config['output-html'];
+        }
+
+        return true;
     }
 
     private function getConfiguration(): Config

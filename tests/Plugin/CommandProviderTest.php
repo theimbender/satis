@@ -13,6 +13,11 @@ declare(strict_types=1);
 
 namespace Composer\Satis\Plugin;
 
+use Composer\Plugin\Capability\CommandProvider as CommandProviderCapability;
+use Composer\Satis\Console\Command\AddCommand;
+use Composer\Satis\Console\Command\BuildCommand;
+use Composer\Satis\Console\Command\InitCommand;
+use Composer\Satis\Console\Command\PurgeCommand;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\TestCase;
@@ -21,57 +26,39 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(CommandProvider::class)]
 class CommandProviderTest extends TestCase
 {
-    #[TestDox('Can instantiate the command provider')]
-    public function testCanInstantiate(): void
-    {
-        $provider = new CommandProvider();
-        self::assertInstanceOf(CommandProvider::class, $provider);
-    }
-
     #[TestDox('Implements the CommandProviderCapability interface')]
     public function testImplementsCommandProviderCapability(): void
     {
         $provider = new CommandProvider();
-        self::assertInstanceOf(\Composer\Plugin\Capability\CommandProvider::class, $provider);
+        self::assertInstanceOf(CommandProviderCapability::class, $provider);
     }
 
-    #[TestDox('Returns the expected number of commands')]
-    public function testReturnsCorrectCommands(): void
+    #[TestDox('Returns the expected commands in order')]
+    public function testGetCommandsReturnsExpectedCommands(): void
     {
         $provider = new CommandProvider();
         $commands = $provider->getCommands();
 
-        self::assertCount(4, $commands);
+        $expected = self::expectedCommands();
 
-        // Verify each command exists and has expected name
-        self::assertEquals('satis:add', $commands[0]->getName());
-        self::assertEquals('satis:build', $commands[1]->getName());
-        self::assertEquals('satis:init', $commands[2]->getName());
-        self::assertEquals('satis:purge', $commands[3]->getName());
+        self::assertCount(count($expected), $commands);
+
+        foreach ($expected as $index => [$name, $class]) {
+            self::assertSame($name, $commands[$index]->getName());
+            self::assertInstanceOf($class, $commands[$index]);
+        }
     }
 
-    #[TestDox('Returns commands that are instances of expected classes')]
-    public function testCommandsAreInstancesOfExpectedClasses(): void
+    /**
+     * @return list<array{0: string, 1: class-string}>
+     */
+    private static function expectedCommands(): array
     {
-        $provider = new CommandProvider();
-        $commands = $provider->getCommands();
-
-        self::assertInstanceOf(\Composer\Satis\Console\Command\AddCommand::class, $commands[0]);
-        self::assertInstanceOf(\Composer\Satis\Console\Command\BuildCommand::class, $commands[1]);
-        self::assertInstanceOf(\Composer\Satis\Console\Command\InitCommand::class, $commands[2]);
-        self::assertInstanceOf(\Composer\Satis\Console\Command\PurgeCommand::class, $commands[3]);
-    }
-
-    #[TestDox('Command names match plugin registration')]
-    public function testCommandNamesMatchPluginRegistration(): void
-    {
-        $provider = new CommandProvider();
-        $commands = $provider->getCommands();
-
-        // Verify against known command names
-        $expectedNames = ['satis:add', 'satis:build', 'satis:init', 'satis:purge'];
-        $actualNames = array_map(fn ($c) => $c->getName(), $commands);
-
-        self::assertEquals($expectedNames, $actualNames);
+        return [
+            ['satis:add', AddCommand::class],
+            ['satis:build', BuildCommand::class],
+            ['satis:init', InitCommand::class],
+            ['satis:purge', PurgeCommand::class],
+        ];
     }
 }

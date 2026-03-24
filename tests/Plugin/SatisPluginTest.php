@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Composer\Satis\Plugin;
 
+use Closure;
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -33,7 +34,6 @@ class SatisPluginTest extends TestCase
     #[TestDox('Can be instantiated')]
     public function testCanBeInstantiated(): void
     {
-        self::assertInstanceOf(SatisPlugin::class, $this->plugin);
         self::assertInstanceOf(\Composer\Plugin\PluginInterface::class, $this->plugin);
         self::assertInstanceOf(\Composer\Plugin\Capable::class, $this->plugin);
     }
@@ -82,32 +82,27 @@ class SatisPluginTest extends TestCase
     #[TestDox('Deactivation does nothing')]
     public function testDeactivate(): void
     {
-        $composer = $this->createMock(Composer::class);
-        $io = $this->createMock(IOInterface::class);
-
-        // Activate first
-        $reflection = new \ReflectionClass($this->plugin);
-        $composerProperty = $reflection->getProperty('composer');
-        $ioProperty = $reflection->getProperty('io');
-
-        $composerProperty->setValue($this->plugin, $composer);
-        $ioProperty->setValue($this->plugin, $io);
-
-        // Deactivate (should not throw)
-        $this->plugin->deactivate($composer, $io);
-
-        // Verify properties remain unchanged
-        self::assertSame($composer, $composerProperty->getValue($this->plugin));
-        self::assertSame($io, $ioProperty->getValue($this->plugin));
+        $this->assertNoOpLifecyclePreservesComposerAndIo(function (Composer $composer, IOInterface $io): void {
+            $this->plugin->deactivate($composer, $io);
+        });
     }
 
     #[TestDox('Uninstall does nothing')]
     public function testUninstall(): void
     {
+        $this->assertNoOpLifecyclePreservesComposerAndIo(function (Composer $composer, IOInterface $io): void {
+            $this->plugin->uninstall($composer, $io);
+        });
+    }
+
+    /**
+     * @param \Closure(Composer, IOInterface): void $invoke
+     */
+    private function assertNoOpLifecyclePreservesComposerAndIo(\Closure $invoke): void
+    {
         $composer = $this->createMock(Composer::class);
         $io = $this->createMock(IOInterface::class);
 
-        // Activate first
         $reflection = new \ReflectionClass($this->plugin);
         $composerProperty = $reflection->getProperty('composer');
         $ioProperty = $reflection->getProperty('io');
@@ -115,10 +110,8 @@ class SatisPluginTest extends TestCase
         $composerProperty->setValue($this->plugin, $composer);
         $ioProperty->setValue($this->plugin, $io);
 
-        // Uninstall (should not throw)
-        $this->plugin->uninstall($composer, $io);
+        $invoke($composer, $io);
 
-        // Verify properties remain unchanged
         self::assertSame($composer, $composerProperty->getValue($this->plugin));
         self::assertSame($io, $ioProperty->getValue($this->plugin));
     }
